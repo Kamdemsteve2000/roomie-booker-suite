@@ -57,9 +57,11 @@ const Navigation = () => {
                 Book Now
               </Link>
             </Button>
-            <Button variant="ghost" size="sm">
-              <User className="w-4 h-4 mr-2" />
-              Sign In
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/auth">
+                <User className="w-4 h-4 mr-2" />
+                Sign In
+              </Link>
             </Button>
           </div>
 
@@ -102,9 +104,11 @@ const Navigation = () => {
                     Book Now
                   </Link>
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <User className="w-4 h-4 mr-2" />
-                  Sign In
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth">
+                    <User className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Link>
                 </Button>
               </div>
             </div>

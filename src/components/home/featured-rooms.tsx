@@ -9,7 +9,7 @@ import roomStandard from "@/assets/room-standard.jpg";
 
 const rooms = [
   {
-    id: 1,
+    id: "suite",
     name: "Presidential Suite",
     image: roomSuite,
     price: 899,
@@ -21,7 +21,7 @@ const rooms = [
     popular: true,
   },
   {
-    id: 2,
+    id: "deluxe",
     name: "Deluxe Room",
     image: roomDeluxe,
     price: 399,
@@ -33,7 +33,7 @@ const rooms = [
     popular: false,
   },
   {
-    id: 3,
+    id: "standard",
     name: "Standard Room",
     image: roomStandard,
     price: 249,
