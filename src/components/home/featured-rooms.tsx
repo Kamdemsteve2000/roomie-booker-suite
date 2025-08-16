@@ -1,52 +1,80 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Wifi, Car, Coffee, Waves, Utensils } from "lucide-react";
+import { Users, Wifi, Car, Coffee, Waves, Utensils, Dumbbell, UtensilsCrossed } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
 
-const rooms = [
-  {
-    id: "suite",
-    name: "Presidential Suite",
-    image: roomSuite,
-    price: 899,
-    capacity: 4,
-    size: "120 sqm",
-    features: ["Ocean View", "Private Balcony", "Jacuzzi", "Butler Service"],
-    amenities: [Users, Wifi, Car, Coffee, Waves, Utensils],
-    description: "Experience ultimate luxury in our flagship suite with panoramic views and exclusive amenities.",
-    popular: true,
-  },
-  {
-    id: "deluxe",
-    name: "Deluxe Room",
-    image: roomDeluxe,
-    price: 399,
-    capacity: 2,
-    size: "45 sqm",
-    features: ["City View", "King Bed", "Marble Bathroom", "Minibar"],
-    amenities: [Users, Wifi, Car, Coffee],
-    description: "Elegant comfort meets modern convenience in our spacious deluxe accommodations.",
-    popular: false,
-  },
-  {
-    id: "standard",
-    name: "Standard Room",
-    image: roomStandard,
-    price: 249,
-    capacity: 2,
-    size: "32 sqm",
-    features: ["Garden View", "Queen Bed", "Work Desk", "Coffee Machine"],
-    amenities: [Users, Wifi, Coffee],
-    description: "Comfortable and stylish rooms perfect for business travelers and couples.",
-    popular: false,
-  },
-];
+interface Room {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  price: number;
+  capacity: number;
+  size: string;
+  image_url: string | null;
+  features: string[];
+  amenities: string[];
+  available: boolean;
+}
+
+const amenityIcons: { [key: string]: any } = {
+  wifi: Wifi,
+  parking: Car,
+  coffee: Coffee,
+  fitness: Dumbbell,
+  pool: Waves,
+  restaurant: UtensilsCrossed,
+};
 
 const FeaturedRooms = () => {
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
+  const fetchRooms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('available', true)
+        .order('price', { ascending: true });
+
+      if (error) throw error;
+      setRooms(data || []);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getImageUrl = (room: Room) => {
+    if (room.type === 'suite') return roomSuite;
+    if (room.type === 'deluxe') return roomDeluxe;
+    return roomStandard;
+  };
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-gradient-luxury">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="animate-pulse">Loading rooms...</div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-20 bg-gradient-luxury">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,11 +98,11 @@ const FeaturedRooms = () => {
             >
               <div className="relative">
                 <img
-                  src={room.image}
+                  src={getImageUrl(room)}
                   alt={room.name}
                   className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                {room.popular && (
+                {room.type === 'suite' && (
                   <Badge className="absolute top-4 left-4 bg-gradient-hero text-white">
                     Most Popular
                   </Badge>
@@ -120,12 +148,15 @@ const FeaturedRooms = () => {
 
                 {/* Amenities Icons */}
                 <div className="flex items-center gap-3 mb-6">
-                  {room.amenities.slice(0, 4).map((Icon, index) => (
-                    <Icon
-                      key={index}
-                      className="w-4 h-4 text-muted-foreground"
-                    />
-                  ))}
+                  {room.amenities.slice(0, 4).map((amenity, index) => {
+                    const Icon = amenityIcons[amenity] || Users;
+                    return (
+                      <Icon
+                        key={index}
+                        className="w-4 h-4 text-muted-foreground"
+                      />
+                    );
+                  })}
                   {room.amenities.length > 4 && (
                     <span className="text-muted-foreground text-xs">
                       +{room.amenities.length - 4}
@@ -142,7 +173,7 @@ const FeaturedRooms = () => {
                     <Link to="/booking">Book Now</Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <Link to={`/rooms/${room.id}`}>Details</Link>
+                    <Link to={`/room-details/${room.id}`}>Details</Link>
                   </Button>
                 </div>
               </CardContent>

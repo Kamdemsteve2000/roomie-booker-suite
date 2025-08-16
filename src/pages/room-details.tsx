@@ -1,82 +1,83 @@
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/ui/navigation";
-import { ArrowLeft, Wifi, Car, Coffee, Dumbbell, Users, Bed } from "lucide-react";
+import { ArrowLeft, Wifi, Car, Coffee, Dumbbell, Users, Bed, UtensilsCrossed, Waves } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import roomSuite from "@/assets/room-suite.jpg";
+import roomDeluxe from "@/assets/room-deluxe.jpg";
+import roomStandard from "@/assets/room-standard.jpg";
 
-// Mock room data - in real app this would come from Supabase
-const roomsData = {
-  standard: {
-    id: "standard",
-    name: "Standard Room",
-    image: "/src/assets/room-standard.jpg",
-    price: 150,
-    description: "Our comfortable Standard Rooms offer everything you need for a pleasant stay. Featuring modern amenities and elegant décor, these rooms provide the perfect balance of comfort and value.",
-    features: [
-      "Queen-size bed",
-      "32-inch flat-screen TV",
-      "Free Wi-Fi",
-      "Air conditioning",
-      "Private bathroom",
-      "Work desk",
-      "Mini refrigerator",
-      "Coffee maker"
-    ],
-    amenities: ["wifi", "parking", "coffee", "fitness"]
-  },
-  deluxe: {
-    id: "deluxe",
-    name: "Deluxe Room",
-    image: "/src/assets/room-deluxe.jpg",
-    price: 250,
-    description: "Experience enhanced comfort in our spacious Deluxe Rooms. With premium furnishings and additional amenities, these rooms are perfect for guests seeking a more luxurious experience.",
-    features: [
-      "King-size bed",
-      "42-inch smart TV",
-      "Free high-speed Wi-Fi",
-      "Premium air conditioning",
-      "Marble bathroom with rainfall shower",
-      "Executive work area",
-      "Mini-bar",
-      "Nespresso machine",
-      "City view"
-    ],
-    amenities: ["wifi", "parking", "coffee", "fitness"]
-  },
-  suite: {
-    id: "suite",
-    name: "Executive Suite",
-    image: "/src/assets/room-suite.jpg",
-    price: 400,
-    description: "Indulge in the ultimate luxury with our Executive Suites. Featuring separate living areas, premium amenities, and stunning views, these suites provide an unforgettable experience.",
-    features: [
-      "Separate bedroom and living area",
-      "King-size bed with premium linens",
-      "55-inch smart TV in both rooms",
-      "Free premium Wi-Fi",
-      "Climate control",
-      "Marble bathroom with jacuzzi",
-      "Executive lounge access",
-      "Premium mini-bar",
-      "Espresso machine",
-      "Panoramic city view",
-      "24/7 concierge service"
-    ],
-    amenities: ["wifi", "parking", "coffee", "fitness"]
-  }
-};
+interface Room {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  price: number;
+  capacity: number;
+  size: string;
+  image_url: string | null;
+  features: string[];
+  amenities: string[];
+  available: boolean;
+}
 
-const amenityIcons = {
+const amenityIcons: { [key: string]: any } = {
   wifi: Wifi,
   parking: Car,
   coffee: Coffee,
-  fitness: Dumbbell
+  fitness: Dumbbell,
+  pool: Waves,
+  restaurant: UtensilsCrossed,
 };
 
 export default function RoomDetailsPage() {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  
-  const room = roomId ? roomsData[roomId as keyof typeof roomsData] : null;
+  const [room, setRoom] = useState<Room | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (roomId) {
+      fetchRoom();
+    }
+  }, [roomId]);
+
+  const fetchRoom = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single();
+
+      if (error) throw error;
+      setRoom(data);
+    } catch (error) {
+      console.error('Error fetching room:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getImageUrl = (room: Room) => {
+    if (room.type === 'suite') return roomSuite;
+    if (room.type === 'deluxe') return roomDeluxe;
+    return roomStandard;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="animate-pulse text-muted-foreground">Loading room details...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!room) {
     return (
@@ -107,7 +108,7 @@ export default function RoomDetailsPage() {
           {/* Room Image */}
           <div className="relative">
             <img
-              src={room.image}
+              src={getImageUrl(room)}
               alt={room.name}
               className="w-full h-96 lg:h-[500px] object-cover rounded-lg shadow-elegant"
             />
@@ -122,15 +123,28 @@ export default function RoomDetailsPage() {
 
             <p className="text-muted-foreground leading-relaxed">{room.description}</p>
 
+            {/* Room Info */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="flex items-center text-muted-foreground">
+                <Users className="w-5 h-5 mr-2" />
+                Up to {room.capacity} guests
+              </div>
+              <div className="flex items-center text-muted-foreground">
+                <Bed className="w-5 h-5 mr-2" />
+                {room.size}
+              </div>
+            </div>
+
             {/* Amenities */}
             <div>
               <h3 className="text-xl font-semibold text-foreground mb-3">Amenities</h3>
-              <div className="flex space-x-4">
+              <div className="grid grid-cols-3 gap-4">
                 {room.amenities.map((amenity) => {
-                  const Icon = amenityIcons[amenity as keyof typeof amenityIcons];
+                  const Icon = amenityIcons[amenity] || Coffee;
                   return (
                     <div key={amenity} className="flex items-center text-primary">
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5 mr-2" />
+                      <span className="capitalize">{amenity}</span>
                     </div>
                   );
                 })}
