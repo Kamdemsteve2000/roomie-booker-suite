@@ -16,11 +16,13 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          admin_notes: string | null
           adults: number
           check_in_date: string
           check_out_date: string
           children: number
           created_at: string
+          guest_count: number | null
           guest_email: string
           guest_first_name: string
           guest_last_name: string
@@ -29,16 +31,19 @@ export type Database = {
           room_id: string
           special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          total_amount: number | null
           total_price: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          admin_notes?: string | null
           adults?: number
           check_in_date: string
           check_out_date: string
           children?: number
           created_at?: string
+          guest_count?: number | null
           guest_email: string
           guest_first_name: string
           guest_last_name: string
@@ -47,16 +52,19 @@ export type Database = {
           room_id: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number | null
           total_price: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          admin_notes?: string | null
           adults?: number
           check_in_date?: string
           check_out_date?: string
           children?: number
           created_at?: string
+          guest_count?: number | null
           guest_email?: string
           guest_first_name?: string
           guest_last_name?: string
@@ -65,6 +73,7 @@ export type Database = {
           room_id?: string
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number | null
           total_price?: number
           updated_at?: string
           user_id?: string
@@ -109,6 +118,69 @@ export type Database = {
         }
         Relationships: []
       }
+      content_pages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          meta_description: string | null
+          published: boolean | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          meta_description?: string | null
+          published?: boolean | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          meta_description?: string | null
+          published?: boolean | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      dashboard_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_label: string | null
+          metric_type: string
+          metric_value: number
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_label?: string | null
+          metric_type: string
+          metric_value: number
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_label?: string | null
+          metric_type?: string
+          metric_value?: number
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -142,6 +214,47 @@ export type Database = {
         }
         Relationships: []
       }
+      room_pricing: {
+        Row: {
+          base_price: number
+          created_at: string | null
+          end_date: string
+          id: string
+          room_type_id: string | null
+          seasonal_multiplier: number | null
+          start_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_price: number
+          created_at?: string | null
+          end_date: string
+          id?: string
+          room_type_id?: string | null
+          seasonal_multiplier?: number | null
+          start_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          room_type_id?: string | null
+          seasonal_multiplier?: number | null
+          start_date?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_pricing_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           amenities: string[] | null
@@ -152,9 +265,11 @@ export type Database = {
           features: string[] | null
           id: string
           image_url: string | null
+          inventory_count: number | null
           name: string
           price: number
           size: string
+          status: string | null
           type: Database["public"]["Enums"]["room_type"]
           updated_at: string
         }
@@ -167,9 +282,11 @@ export type Database = {
           features?: string[] | null
           id?: string
           image_url?: string | null
+          inventory_count?: number | null
           name: string
           price: number
           size: string
+          status?: string | null
           type: Database["public"]["Enums"]["room_type"]
           updated_at?: string
         }
@@ -182,11 +299,34 @@ export type Database = {
           features?: string[] | null
           id?: string
           image_url?: string | null
+          inventory_count?: number | null
           name?: string
           price?: number
           size?: string
+          status?: string | null
           type?: Database["public"]["Enums"]["room_type"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -195,9 +335,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "user"
       booking_status: "pending" | "confirmed" | "cancelled" | "completed"
       room_type: "standard" | "deluxe" | "suite"
     }
@@ -327,6 +478,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       booking_status: ["pending", "confirmed", "cancelled", "completed"],
       room_type: ["standard", "deluxe", "suite"],
     },

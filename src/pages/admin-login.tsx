@@ -1,18 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Shield, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, user, userRole } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user && userRole === 'admin') {
+      navigate('/admin-dashboard');
+    }
+  }, [user, userRole, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This would integrate with Supabase authentication for admin role
-    alert("Admin authentication requires Supabase integration with role-based access");
+    setIsLoading(true);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const email = formData.get('admin-email') as string;
+    const password = formData.get('admin-password') as string;
+
+    const { error } = await signIn(email, password);
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Admin login failed",
+        description: error.message,
+      });
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -45,13 +70,14 @@ export default function AdminLoginPage() {
                 <label htmlFor="admin-email" className="block text-sm font-medium text-foreground mb-2">
                   Administrator Email
                 </label>
-                <Input 
-                  id="admin-email" 
-                  type="email" 
-                  required 
-                  placeholder="admin@grandluxehotel.com"
-                  className="transition-all focus:ring-2 focus:ring-primary/20"
-                />
+                 <Input 
+                   id="admin-email" 
+                   name="admin-email"
+                   type="email" 
+                   required 
+                   placeholder="admin@grandluxehotel.com"
+                   className="transition-all focus:ring-2 focus:ring-primary/20"
+                 />
               </div>
 
               <div>
@@ -59,13 +85,14 @@ export default function AdminLoginPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <Input 
-                    id="admin-password" 
-                    type={showPassword ? "text" : "password"} 
-                    required 
-                    placeholder="Enter admin password"
-                    className="transition-all focus:ring-2 focus:ring-primary/20"
-                  />
+                   <Input 
+                     id="admin-password" 
+                     name="admin-password"
+                     type={showPassword ? "text" : "password"} 
+                     required 
+                     placeholder="Enter admin password"
+                     className="transition-all focus:ring-2 focus:ring-primary/20"
+                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -86,10 +113,10 @@ export default function AdminLoginPage() {
                 </a>
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                <Shield className="mr-2 h-4 w-4" />
-                Access Admin Panel
-              </Button>
+               <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                 <Shield className="mr-2 h-4 w-4" />
+                 {isLoading ? "Authenticating..." : "Access Admin Panel"}
+               </Button>
             </form>
 
             <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">

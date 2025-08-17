@@ -1,25 +1,105 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/ui/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff, UserPlus, LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, signUp, signInWithGoogle, user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSignIn = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This would integrate with Supabase authentication
-    alert("Sign in functionality requires Supabase integration");
+    setIsLoading(true);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const email = formData.get('signin-email') as string;
+    const password = formData.get('signin-password') as string;
+
+    const { error } = await signIn(email, password);
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign in failed",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Welcome back!",
+        description: "You've been successfully signed in.",
+      });
+    }
+    setIsLoading(false);
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This would integrate with Supabase authentication
-    alert("Sign up functionality requires Supabase integration");
+    setIsLoading(true);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const email = formData.get('signup-email') as string;
+    const password = formData.get('signup-password') as string;
+    const confirmPassword = formData.get('confirm-password') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const phone = formData.get('phone') as string;
+
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords don't match",
+        description: "Please ensure both passwords are identical.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    const { error } = await signUp(email, password, {
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone
+    });
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Sign up failed",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Account created!",
+        description: "Please check your email to verify your account.",
+      });
+    }
+    setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    const { error } = await signInWithGoogle();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Google sign in failed",
+        description: error.message,
+      });
+    }
   };
 
   return (
@@ -51,12 +131,13 @@ export default function AuthPage() {
                       <label htmlFor="signin-email" className="block text-sm font-medium text-foreground mb-2">
                         Email Address
                       </label>
-                      <Input 
-                        id="signin-email" 
-                        type="email" 
-                        required 
-                        placeholder="Enter your email"
-                      />
+                       <Input 
+                         id="signin-email" 
+                         name="signin-email"
+                         type="email" 
+                         required 
+                         placeholder="Enter your email"
+                       />
                     </div>
 
                     <div>
@@ -64,12 +145,13 @@ export default function AuthPage() {
                         Password
                       </label>
                       <div className="relative">
-                        <Input 
-                          id="signin-password" 
-                          type={showPassword ? "text" : "password"} 
-                          required 
-                          placeholder="Enter your password"
-                        />
+                         <Input 
+                           id="signin-password" 
+                           name="signin-password"
+                           type={showPassword ? "text" : "password"} 
+                           required 
+                           placeholder="Enter your password"
+                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
@@ -90,10 +172,10 @@ export default function AuthPage() {
                       </a>
                     </div>
 
-                    <Button type="submit" className="w-full" size="lg">
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Sign In
-                    </Button>
+                     <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                       <LogIn className="mr-2 h-4 w-4" />
+                       {isLoading ? "Signing In..." : "Sign In"}
+                     </Button>
                   </form>
                 </TabsContent>
 
@@ -105,21 +187,23 @@ export default function AuthPage() {
                         <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-2">
                           First Name
                         </label>
-                        <Input 
-                          id="firstName" 
-                          required 
-                          placeholder="First name"
-                        />
+                         <Input 
+                           id="firstName" 
+                           name="firstName"
+                           required 
+                           placeholder="First name"
+                         />
                       </div>
                       <div>
                         <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-2">
                           Last Name
                         </label>
-                        <Input 
-                          id="lastName" 
-                          required 
-                          placeholder="Last name"
-                        />
+                         <Input 
+                           id="lastName" 
+                           name="lastName"
+                           required 
+                           placeholder="Last name"
+                         />
                       </div>
                     </div>
 
@@ -127,23 +211,25 @@ export default function AuthPage() {
                       <label htmlFor="signup-email" className="block text-sm font-medium text-foreground mb-2">
                         Email Address
                       </label>
-                      <Input 
-                        id="signup-email" 
-                        type="email" 
-                        required 
-                        placeholder="Enter your email"
-                      />
+                       <Input 
+                         id="signup-email" 
+                         name="signup-email"
+                         type="email" 
+                         required 
+                         placeholder="Enter your email"
+                       />
                     </div>
 
                     <div>
                       <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
                         Phone Number
                       </label>
-                      <Input 
-                        id="phone" 
-                        type="tel" 
-                        placeholder="Enter your phone number"
-                      />
+                       <Input 
+                         id="phone" 
+                         name="phone"
+                         type="tel" 
+                         placeholder="Enter your phone number"
+                       />
                     </div>
 
                     <div>
@@ -151,12 +237,13 @@ export default function AuthPage() {
                         Password
                       </label>
                       <div className="relative">
-                        <Input 
-                          id="signup-password" 
-                          type={showPassword ? "text" : "password"} 
-                          required 
-                          placeholder="Create a password"
-                        />
+                         <Input 
+                           id="signup-password" 
+                           name="signup-password"
+                           type={showPassword ? "text" : "password"} 
+                           required 
+                           placeholder="Create a password"
+                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
@@ -172,12 +259,13 @@ export default function AuthPage() {
                         Confirm Password
                       </label>
                       <div className="relative">
-                        <Input 
-                          id="confirm-password" 
-                          type={showConfirmPassword ? "text" : "password"} 
-                          required 
-                          placeholder="Confirm your password"
-                        />
+                         <Input 
+                           id="confirm-password" 
+                           name="confirm-password"
+                           type={showConfirmPassword ? "text" : "password"} 
+                           required 
+                           placeholder="Confirm your password"
+                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -198,10 +286,10 @@ export default function AuthPage() {
                       </span>
                     </div>
 
-                    <Button type="submit" className="w-full" size="lg">
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Create Account
-                    </Button>
+                     <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                       <UserPlus className="mr-2 h-4 w-4" />
+                       {isLoading ? "Creating Account..." : "Create Account"}
+                     </Button>
                   </form>
                 </TabsContent>
               </Tabs>
@@ -217,14 +305,14 @@ export default function AuthPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="w-full">
-                    Google
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    Facebook
-                  </Button>
-                </div>
+                 <div className="mt-4 grid grid-cols-2 gap-3">
+                   <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                     Google
+                   </Button>
+                   <Button variant="outline" className="w-full" disabled>
+                     Facebook
+                   </Button>
+                 </div>
               </div>
             </CardContent>
           </Card>
