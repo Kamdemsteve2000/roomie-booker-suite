@@ -4,8 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import Map from "@/components/Map";
 
 export default function ContactPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
+
   const contactInfo = [
     {
       icon: Phone,
@@ -29,10 +43,52 @@ export default function ContactPage() {
     }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This would connect to Supabase for form submission
-    alert("Thank you for your message! We'll get back to you soon.");
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone || null,
+          subject: formData.subject,
+          message: formData.message
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Message sent successfully!",
+        description: "We'll get back to you as soon as possible.",
+      });
+
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: ''
+      });
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error sending message",
+        description: "Please try again later or contact us directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -88,16 +144,10 @@ export default function ContactPage() {
                   })}
                 </div>
 
-                {/* Map Placeholder */}
+                {/* Interactive Map */}
                 <Card>
                   <CardContent className="p-0">
-                    <div className="h-64 bg-gradient-subtle rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <MapPin className="h-12 w-12 text-primary mx-auto mb-2" />
-                        <p className="text-muted-foreground">Interactive Map</p>
-                        <p className="text-sm text-muted-foreground">123 Luxury Boulevard</p>
-                      </div>
-                    </div>
+                    <Map className="h-64" />
                   </CardContent>
                 </Card>
               </div>
@@ -115,13 +165,25 @@ export default function ContactPage() {
                           <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-2">
                             First Name *
                           </label>
-                          <Input id="firstName" required />
+                          <Input 
+                            id="firstName" 
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleInputChange}
+                            required 
+                          />
                         </div>
                         <div>
                           <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-2">
                             Last Name *
                           </label>
-                          <Input id="lastName" required />
+                          <Input 
+                            id="lastName" 
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleInputChange}
+                            required 
+                          />
                         </div>
                       </div>
 
@@ -129,21 +191,40 @@ export default function ContactPage() {
                         <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                           Email Address *
                         </label>
-                        <Input id="email" type="email" required />
+                        <Input 
+                          id="email" 
+                          name="email"
+                          type="email" 
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          required 
+                        />
                       </div>
 
                       <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
                           Phone Number
                         </label>
-                        <Input id="phone" type="tel" />
+                        <Input 
+                          id="phone" 
+                          name="phone"
+                          type="tel" 
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                        />
                       </div>
 
                       <div>
                         <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
                           Subject *
                         </label>
-                        <Input id="subject" required />
+                        <Input 
+                          id="subject" 
+                          name="subject"
+                          value={formData.subject}
+                          onChange={handleInputChange}
+                          required 
+                        />
                       </div>
 
                       <div>
@@ -152,14 +233,17 @@ export default function ContactPage() {
                         </label>
                         <Textarea 
                           id="message" 
+                          name="message"
+                          value={formData.message}
+                          onChange={handleInputChange}
                           required 
                           rows={6}
                           placeholder="Tell us how we can help you..."
                         />
                       </div>
 
-                      <Button type="submit" size="lg" className="w-full">
-                        Send Message
+                      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? "Sending..." : "Send Message"}
                       </Button>
                     </form>
                   </CardContent>
