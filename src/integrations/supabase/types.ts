@@ -214,6 +214,44 @@ export type Database = {
         }
         Relationships: []
       }
+      room_images: {
+        Row: {
+          alt: string | null
+          created_at: string
+          id: string
+          image_url: string
+          room_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          room_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          room_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_images_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_pricing: {
         Row: {
           base_price: number
@@ -249,6 +287,41 @@ export type Database = {
           {
             foreignKeyName: "room_pricing_room_type_id_fkey"
             columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_units: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          room_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          room_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          room_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_units_room_id_fkey"
+            columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
