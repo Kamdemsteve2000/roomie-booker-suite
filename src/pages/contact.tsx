@@ -48,7 +48,8 @@ export default function ContactPage() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
+      // Save to database
+      const { error: dbError } = await supabase
         .from('contact_messages')
         .insert({
           name: `${formData.firstName} ${formData.lastName}`,
@@ -58,11 +59,27 @@ export default function ContactPage() {
           message: formData.message
         });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
+
+      // Send email notification to admin
+      const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
+        body: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
+          subject: formData.subject,
+          message: formData.message
+        }
+      });
+
+      if (emailError) {
+        console.error('Email error:', emailError);
+        // Don't fail the whole process if email fails
+      }
 
       toast({
-        title: "Message sent successfully!",
-        description: "We'll get back to you as soon as possible.",
+        title: "Message envoyé avec succès!",
+        description: "Nous vous répondrons dans les plus brefs délais.",
       });
 
       // Reset form
@@ -77,8 +94,8 @@ export default function ContactPage() {
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
-        title: "Error sending message",
-        description: "Please try again later or contact us directly.",
+        title: "Erreur lors de l'envoi",
+        description: "Veuillez réessayer plus tard ou nous contacter directement.",
         variant: "destructive",
       });
     } finally {
