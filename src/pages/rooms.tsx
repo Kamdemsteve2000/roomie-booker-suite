@@ -36,6 +36,8 @@ const amenityIcons: { [key: string]: any } = {
 const RoomsPage = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imagesByRoom, setImagesByRoom] = useState<Record<string, { url: string; alt?: string }[]>>({});
+  const [unitsCountByRoom, setUnitsCountByRoom] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchRooms();
@@ -50,7 +52,41 @@ const RoomsPage = () => {
         .order('price', { ascending: true });
 
       if (error) throw error;
-      setRooms(data || []);
+      const roomsData = data || [];
+      setRooms(roomsData);
+
+      // Fetch images and units in parallel for all rooms
+      const roomIds = roomsData.map((r) => r.id);
+      if (roomIds.length) {
+        const [imagesRes, unitsRes] = await Promise.all([
+          supabase
+            .from('room_images')
+            .select('room_id,image_url,alt,sort_order')
+            .in('room_id', roomIds)
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('room_units')
+            .select('room_id,status')
+            .in('room_id', roomIds),
+        ]);
+
+        if (!imagesRes.error && imagesRes.data) {
+          const map: Record<string, { url: string; alt?: string }[]> = {};
+          imagesRes.data.forEach((img: any) => {
+            if (!map[img.room_id]) map[img.room_id] = [];
+            map[img.room_id].push({ url: img.image_url, alt: img.alt || undefined });
+          });
+          setImagesByRoom(map);
+        }
+
+        if (!unitsRes.error && unitsRes.data) {
+          const countMap: Record<string, number> = {};
+          unitsRes.data.forEach((u: any) => {
+            if (u.status === 'available') countMap[u.room_id] = (countMap[u.room_id] || 0) + 1;
+          });
+          setUnitsCountByRoom(countMap);
+        }
+      }
     } catch (error) {
       console.error('Error fetching rooms:', error);
     } finally {
@@ -58,11 +94,13 @@ const RoomsPage = () => {
     }
   };
 
-  const getImageUrl = (room: Room) => {
-    if (room.type === 'suite') return roomSuite;
-    if (room.type === 'deluxe') return roomDeluxe;
-    return roomStandard;
-  };
+const getImageUrl = (room: Room) => {
+  const imgs = imagesByRoom[room.id];
+  if (imgs && imgs.length > 0) return imgs[0].url;
+  if (room.type === 'suite') return roomSuite;
+  if (room.type === 'deluxe') return roomDeluxe;
+  return roomStandard;
+};
 
   return (
     <div className="min-h-screen bg-background">
@@ -174,6 +212,14 @@ const RoomsPage = () => {
                               +{room.amenities.length - 4} more
                             </span>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Units */}
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-foreground mb-2 text-sm">Units Available</h4>
+                        <div className="text-sm text-muted-foreground">
+                          {unitsCountByRoom[room.id] ? `${unitsCountByRoom[room.id]} sub-rooms available` : 'No sub-rooms available'}
                         </div>
                       </div>
 

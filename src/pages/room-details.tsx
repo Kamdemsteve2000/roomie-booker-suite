@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import Navigation from "@/components/ui/navigation";
 import { ArrowLeft, Wifi, Car, Coffee, Dumbbell, Users, Bed, UtensilsCrossed, Waves } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Badge } from "@/components/ui/badge";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
@@ -35,6 +37,8 @@ export default function RoomDetailsPage() {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const [room, setRoom] = useState<Room | null>(null);
+  const [images, setImages] = useState<{ url: string; alt?: string }[]>([]);
+  const [units, setUnits] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,10 +53,32 @@ export default function RoomDetailsPage() {
         .from('rooms')
         .select('*')
         .eq('id', roomId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setRoom(data);
+      if (data) {
+        setRoom(data);
+        document.title = `${data.name} | Luxe Hotel`;
+
+        const [imagesRes, unitsRes] = await Promise.all([
+          supabase
+            .from('room_images')
+            .select('image_url,alt,sort_order')
+            .eq('room_id', data.id)
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('room_units')
+            .select('code,status')
+            .eq('room_id', data.id),
+        ]);
+
+        if (!imagesRes.error && imagesRes.data) {
+          setImages(imagesRes.data.map((img: any) => ({ url: img.image_url, alt: img.alt || undefined })));
+        }
+        if (!unitsRes.error && unitsRes.data) {
+          setUnits(unitsRes.data.map((u: any) => u.code));
+        }
+      }
     } catch (error) {
       console.error('Error fetching room:', error);
     } finally {
@@ -107,11 +133,32 @@ export default function RoomDetailsPage() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Room Image */}
           <div className="relative">
-            <img
-              src={getImageUrl(room)}
-              alt={room.name}
-              className="w-full h-96 lg:h-[500px] object-cover rounded-lg shadow-elegant"
-            />
+            {images.length > 0 ? (
+              <div className="relative">
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {images.map((img, idx) => (
+                      <CarouselItem key={idx}>
+                        <img
+                          src={img.url}
+                          alt={img.alt || room.name}
+                          className="w-full h-96 lg:h-[500px] object-cover rounded-lg shadow-elegant"
+                          loading="lazy"
+                        />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious />
+                  <CarouselNext />
+                </Carousel>
+              </div>
+            ) : (
+              <img
+                src={getImageUrl(room)}
+                alt={room.name}
+                className="w-full h-96 lg:h-[500px] object-cover rounded-lg shadow-elegant"
+              />
+            )}
           </div>
 
           {/* Room Details */}
@@ -162,6 +209,20 @@ export default function RoomDetailsPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Sub-rooms */}
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-3">Sub-rooms</h3>
+              {units.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {units.map((code) => (
+                    <Badge key={code} variant="secondary">{code}</Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">No sub-rooms defined.</p>
+              )}
             </div>
 
             {/* Booking Actions */}
