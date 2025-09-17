@@ -59,12 +59,12 @@ const RoomsPage = () => {
       const roomIds = roomsData.map((r) => r.id);
       if (roomIds.length) {
         const [imagesRes, unitsRes] = await Promise.all([
-          supabase
+          (supabase as any)
             .from('room_images')
             .select('room_id,image_url,alt,sort_order')
             .in('room_id', roomIds)
             .order('sort_order', { ascending: true }),
-          supabase
+          (supabase as any)
             .from('room_units')
             .select('room_id,status')
             .in('room_id', roomIds),

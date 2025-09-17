@@ -61,12 +61,12 @@ export default function RoomDetailsPage() {
         document.title = `${data.name} | Luxe Hotel`;
 
         const [imagesRes, unitsRes] = await Promise.all([
-          supabase
+          (supabase as any)
             .from('room_images')
             .select('image_url,alt,sort_order')
             .eq('room_id', data.id)
             .order('sort_order', { ascending: true }),
-          supabase
+          (supabase as any)
             .from('room_units')
             .select('code,status')
             .eq('room_id', data.id),
