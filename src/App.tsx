@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/admin/ProtectedRoute";
 import Index from "./pages/Index";
 import RoomsPage from "./pages/rooms";
 import BookingPage from "./pages/booking";
+import PaymentPage from "./pages/payment";
 import RoomDetailsPage from "./pages/room-details";
 import AboutPage from "./pages/about";
 import ContactPage from "./pages/contact";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/rooms" element={<RoomsPage />} />
             <Route path="/room-details/:roomId" element={<RoomDetailsPage />} />
             <Route path="/booking" element={<BookingPage />} />
+            <Route path="/payment" element={<PaymentPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/auth" element={<AuthPage />} />

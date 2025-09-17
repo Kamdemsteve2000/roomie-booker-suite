@@ -6,10 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Users, Minus, Plus } from "lucide-react";
-import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { CalendarIcon, Users, Minus, Plus, Home } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const BookingPage = () => {
   const [checkIn, setCheckIn] = useState<Date>();
@@ -17,13 +22,100 @@ const BookingPage = () => {
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState("");
+  const [selectedSubRoom, setSelectedSubRoom] = useState("");
+  const [guestNames, setGuestNames] = useState<string[]>([]);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [specialRequests, setSpecialRequests] = useState("");
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [subRooms, setSubRooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const rooms = [
-    { id: "standard", name: "Standard Room", price: 249 },
-    { id: "deluxe", name: "Deluxe Room", price: 399 },
-    { id: "executive", name: "Executive Suite", price: 649 },
-    { id: "presidential", name: "Presidential Suite", price: 899 },
-  ];
+  // Fetch user profile and rooms data
+  useEffect(() => {
+    fetchRooms();
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  // Update guest names array when total guests change
+  useEffect(() => {
+    const totalGuests = adults + children;
+    const newGuestNames = Array(totalGuests).fill('').map((_, index) => 
+      guestNames[index] || ''
+    );
+    setGuestNames(newGuestNames);
+  }, [adults, children]);
+
+  // Update sub-rooms when room selection changes
+  useEffect(() => {
+    if (selectedRoom) {
+      fetchSubRooms(selectedRoom);
+    }
+  }, [selectedRoom]);
+
+  const fetchRooms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('available', true);
+      
+      if (!error && data) {
+        setRooms(data);
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!error && data) {
+        setFirstName(data.first_name || '');
+        setLastName(data.last_name || '');
+        setPhone(data.phone || '');
+      }
+      
+      // Set email from user object
+      if (user.email) {
+        setEmail(user.email);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const fetchSubRooms = async (roomId: string) => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('room_units')
+        .select('*')
+        .eq('room_id', roomId)
+        .eq('status', 'available');
+      
+      if (!error && data) {
+        setSubRooms(data);
+        setSelectedSubRoom(''); // Reset sub-room selection
+      }
+    } catch (error) {
+      console.error('Error fetching sub-rooms:', error);
+    }
+  };
 
   const calculateNights = () => {
     if (checkIn && checkOut) {
@@ -39,6 +131,53 @@ const BookingPage = () => {
       return selectedRoomData.price * calculateNights();
     }
     return 0;
+  };
+
+  const updateGuestName = (index: number, name: string) => {
+    const newGuestNames = [...guestNames];
+    newGuestNames[index] = name;
+    setGuestNames(newGuestNames);
+  };
+
+  const handleProceedToPayment = () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please sign in to continue with your booking.",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    if (!checkIn || !checkOut || !selectedRoom || !selectedSubRoom || !firstName || !lastName || !email) {
+      toast({
+        variant: "destructive",
+        title: "Missing information",
+        description: "Please fill in all required fields to continue.",
+      });
+      return;
+    }
+
+    // Store booking data in session storage for payment page
+    const bookingData = {
+      checkIn: checkIn.toISOString(),
+      checkOut: checkOut.toISOString(),
+      adults,
+      children,
+      selectedRoom,
+      selectedSubRoom,
+      guestNames,
+      firstName,
+      lastName,
+      email,
+      phone,
+      specialRequests,
+      totalPrice: calculateTotal() + Math.round(calculateTotal() * 0.12)
+    };
+
+    sessionStorage.setItem('bookingData', JSON.stringify(bookingData));
+    navigate('/payment');
   };
 
   return (
@@ -191,26 +330,106 @@ const BookingPage = () => {
                     </Select>
                   </div>
 
+                  {/* Sub-Room Selection */}
+                  {selectedRoom && subRooms.length > 0 && (
+                    <div>
+                      <Label>Specific Room Unit</Label>
+                      <Select value={selectedSubRoom} onValueChange={setSelectedSubRoom}>
+                        <SelectTrigger className="w-full mt-1">
+                          <SelectValue placeholder="Select specific room unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subRooms.map((subRoom) => (
+                            <SelectItem key={subRoom.id} value={subRoom.id}>
+                              <div className="flex items-center">
+                                <Home className="w-4 h-4 mr-2" />
+                                {subRoom.code}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   {/* Guest Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="Enter your first name" className="mt-1" />
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input 
+                        id="firstName" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="Enter your first name" 
+                        className="mt-1" 
+                        required
+                      />
                     </div>
                     <div>
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Enter your last name" className="mt-1" />
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input 
+                        id="lastName" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Enter your last name" 
+                        className="mt-1"
+                        required
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" placeholder="Enter your email" className="mt-1" />
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email" 
+                      className="mt-1"
+                      required
+                    />
                   </div>
 
                   <div>
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" type="tel" placeholder="Enter your phone number" className="mt-1" />
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Enter your phone number" 
+                      className="mt-1" 
+                    />
+                  </div>
+
+                  {/* Guest Names */}
+                  {guestNames.length > 0 && (
+                    <div>
+                      <Label>Guest Names</Label>
+                      <div className="space-y-2 mt-1">
+                        {guestNames.map((name, index) => (
+                          <Input
+                            key={index}
+                            value={name}
+                            onChange={(e) => updateGuestName(index, e.target.value)}
+                            placeholder={`Guest ${index + 1} name`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special Requests */}
+                  <div>
+                    <Label htmlFor="specialRequests">Special Requests</Label>
+                    <Textarea 
+                      id="specialRequests"
+                      value={specialRequests}
+                      onChange={(e) => setSpecialRequests(e.target.value)}
+                      placeholder="Any special requests or requirements..."
+                      className="mt-1"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -250,6 +469,13 @@ const BookingPage = () => {
                     </div>
                   )}
 
+                  {selectedSubRoom && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Unit:</span>
+                      <span>{subRooms.find(r => r.id === selectedSubRoom)?.code}</span>
+                    </div>
+                  )}
+
                   {selectedRoom && calculateNights() > 0 && (
                     <>
                       <hr className="my-4" />
@@ -273,9 +499,10 @@ const BookingPage = () => {
 
                   <Button 
                     className="w-full bg-gradient-hero hover:shadow-luxury transition-all duration-300 mt-6"
-                    disabled={!checkIn || !checkOut || !selectedRoom}
+                    disabled={!checkIn || !checkOut || !selectedRoom || !selectedSubRoom || !firstName || !lastName || !email || loading}
+                    onClick={handleProceedToPayment}
                   >
-                    Complete Booking
+                    {loading ? 'Processing...' : 'Proceed to Payment'}
                   </Button>
 
                   <p className="text-xs text-muted-foreground text-center mt-4">
