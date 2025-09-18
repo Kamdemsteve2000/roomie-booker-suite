@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import ProtectedRoute from "@/components/admin/ProtectedRoute";
+import RoomsManager from "@/components/admin/RoomsManager";
 
 export default function AdminDashboard() {
   const [metrics, setMetrics] = useState<any[]>([]);
@@ -226,14 +227,7 @@ export default function AdminDashboard() {
 
           {/* Rooms Tab */}
           <TabsContent value="rooms">
-            <Card>
-              <CardHeader>
-                <CardTitle>Room Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Room availability and maintenance tracking would be displayed here.</p>
-              </CardContent>
-            </Card>
+            <RoomsManager />
           </TabsContent>
 
           {/* Guests Tab */}

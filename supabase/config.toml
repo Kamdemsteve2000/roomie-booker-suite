@@ -1,1 +1,33 @@
 project_id = "irwcqistfgasvewykmnf"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[edge_runtime]
+enabled = true
+ip_version = "ipv4"
+
+[functions]
+enabled = true
+region = "us-east-1"
+
+[functions.create-payment]
+verify_jwt = false
+
+[functions.paypal-payment]
+verify_jwt = false
+
+[functions.cinepay-payment]
+verify_jwt = false

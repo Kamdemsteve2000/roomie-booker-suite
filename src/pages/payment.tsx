@@ -45,59 +45,67 @@ const PaymentPage = () => {
   };
 
   const handlePayment = async () => {
-    if (!user || !bookingData) return;
+    if (!bookingData) return;
 
     setProcessing(true);
 
     try {
-      // Create booking record
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          room_id: bookingData.selectedRoom,
-          check_in_date: new Date(bookingData.checkIn).toISOString().split('T')[0],
-          check_out_date: new Date(bookingData.checkOut).toISOString().split('T')[0],
-          adults: bookingData.adults,
-          children: bookingData.children,
-          total_price: bookingData.totalPrice,
-          guest_first_name: bookingData.firstName,
-          guest_last_name: bookingData.lastName,
-          guest_email: bookingData.email,
-          guest_phone: bookingData.phone,
-          special_requests: bookingData.specialRequests,
-          status: 'confirmed'
-        })
-        .select()
-        .single();
+      let paymentUrl = null;
 
-      if (bookingError) {
-        throw bookingError;
+      // Handle different payment methods
+      if (selectedPayment === "stripe" || selectedPayment === "paypal") {
+        const { data, error } = await supabase.functions.invoke('create-payment', {
+          body: {
+            amount: bookingData.totalPrice,
+            currency: "usd",
+            bookingData: bookingData
+          }
+        });
+
+        if (error) throw error;
+        paymentUrl = data.url;
+      } else if (selectedPayment === "paypal") {
+        const { data, error } = await supabase.functions.invoke('paypal-payment', {
+          body: {
+            amount: bookingData.totalPrice,
+            currency: "USD",
+            bookingData: bookingData
+          }
+        });
+
+        if (error) throw error;
+        paymentUrl = data.url;
+      } else if (selectedPayment === "orange" || selectedPayment === "mtn") {
+        const paymentMethod = selectedPayment === "orange" ? "ORANGE_MONEY_CI" : "MTN_MONEY_CI";
+        const { data, error } = await supabase.functions.invoke('cinepay-payment', {
+          body: {
+            amount: bookingData.totalPrice,
+            currency: "XOF",
+            paymentMethod: paymentMethod,
+            phoneNumber: bookingData.phone,
+            bookingData: bookingData
+          }
+        });
+
+        if (error) throw error;
+        paymentUrl = data.url;
       }
 
-      // Update room unit status to booked
-      const { error: unitError } = await (supabase as any)
-        .from('room_units')
-        .update({ status: 'booked' })
-        .eq('id', bookingData.selectedSubRoom);
-
-      if (unitError) {
-        console.error('Error updating room unit:', unitError);
+      if (paymentUrl) {
+        // Store booking data for confirmation after payment
+        sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData));
+        
+        // Redirect to payment page
+        window.location.href = paymentUrl;
+      } else {
+        throw new Error("No payment URL generated");
       }
 
-      // Clear booking data
-      sessionStorage.removeItem('bookingData');
-
-      toast({
-        title: "Booking confirmed!",
-        description: "Your reservation has been successfully created.",
-      });
-
-      navigate('/profile');
     } catch (error: any) {
+      console.error("Payment error:", error);
       toast({
         variant: "destructive",
-        title: "Booking failed",
+        title: "Payment failed",
         description: error.message || "Something went wrong. Please try again.",
       });
     } finally {
