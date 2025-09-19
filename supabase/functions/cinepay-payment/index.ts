@@ -10,7 +10,26 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Authentication required");
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data } = await supabaseClient.auth.getUser(token);
+    const user = data.user;
+    if (!user?.email) {
+      throw new Error("User not authenticated or email not available");
+    }
+
+    console.log("Creating CinePay payment for user:", user.email);
+
     const { amount, currency = "XOF", paymentMethod, phoneNumber, bookingData } = await req.json();
     
     const cinepayApiKey = Deno.env.get("CINEPAY_API_KEY");
@@ -21,8 +40,35 @@ serve(async (req) => {
     // CinePay API endpoint
     const cinepayUrl = "https://api-checkout.cinetpay.com/v2/payment";
     
+    // Create booking record first
+    const { data: booking, error: bookingError } = await supabaseClient
+      .from('bookings')
+      .insert({
+        user_id: user.id,
+        room_id: bookingData.selectedRoom,
+        check_in_date: bookingData.checkIn.split('T')[0],
+        check_out_date: bookingData.checkOut.split('T')[0],
+        adults: bookingData.adults,
+        children: bookingData.children,
+        total_price: amount,
+        status: 'pending',
+        guest_first_name: bookingData.firstName,
+        guest_last_name: bookingData.lastName,
+        guest_email: bookingData.email,
+        guest_phone: bookingData.phone,
+        special_requests: bookingData.specialRequests
+      })
+      .select()
+      .single();
+
+    if (bookingError) {
+      throw new Error(`Failed to create booking: ${bookingError.message}`);
+    }
+
+    console.log("Booking created:", booking.id);
+
     // Generate unique transaction ID
-    const transactionId = `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const transactionId = `booking_${booking.id}_${Date.now()}`;
     
     const paymentData = {
       apikey: cinepayApiKey,
@@ -31,9 +77,9 @@ serve(async (req) => {
       amount: parseInt(amount),
       currency: currency,
       description: `Hotel booking for ${bookingData?.roomName || 'Room'}`,
-      return_url: `${req.headers.get("origin")}/payment-success`,
+      return_url: `${req.headers.get("origin")}/payment-success?booking_id=${booking.id}`,
       notify_url: `${req.headers.get("origin")}/api/cinepay-webhook`,
-      metadata: JSON.stringify(bookingData),
+      metadata: JSON.stringify({ ...bookingData, booking_id: booking.id, user_id: user.id }),
       customer_surname: bookingData?.lastName || "",
       customer_name: bookingData?.firstName || "",
       customer_email: bookingData?.email || "",

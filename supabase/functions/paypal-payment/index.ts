@@ -10,7 +10,26 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Authentication required");
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data } = await supabaseClient.auth.getUser(token);
+    const user = data.user;
+    if (!user?.email) {
+      throw new Error("User not authenticated or email not available");
+    }
+
+    console.log("Creating PayPal payment for user:", user.email);
+
     const { amount, currency = "USD", bookingData } = await req.json();
     
     const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");

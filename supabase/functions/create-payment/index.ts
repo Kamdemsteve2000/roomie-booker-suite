@@ -20,35 +20,65 @@ serve(async (req) => {
   );
 
   try {
-    const { amount, currency = "usd", bookingData } = await req.json();
-    
-    // For authenticated users, get user info
-    let userEmail = null;
     const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data } = await supabaseClient.auth.getUser(token);
-      userEmail = data.user?.email;
+    if (!authHeader) {
+      throw new Error("Authentication required");
     }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data } = await supabaseClient.auth.getUser(token);
+    const user = data.user;
+    if (!user?.email) {
+      throw new Error("User not authenticated or email not available");
+    }
+
+    console.log("Creating payment for user:", user.email);
+
+    const { amount, currency = "usd", bookingData } = await req.json();
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if a Stripe customer record exists for this user
+    // Check if customer exists
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
-    if (userEmail) {
-      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
-      }
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
     }
+
+    // Create booking record first
+    const { data: booking, error: bookingError } = await supabaseClient
+      .from('bookings')
+      .insert({
+        user_id: user.id,
+        room_id: bookingData.selectedRoom,
+        check_in_date: bookingData.checkIn.split('T')[0],
+        check_out_date: bookingData.checkOut.split('T')[0],
+        adults: bookingData.adults,
+        children: bookingData.children,
+        total_price: amount,
+        status: 'pending',
+        guest_first_name: bookingData.firstName,
+        guest_last_name: bookingData.lastName,
+        guest_email: bookingData.email,
+        guest_phone: bookingData.phone,
+        special_requests: bookingData.specialRequests
+      })
+      .select()
+      .single();
+
+    if (bookingError) {
+      throw new Error(`Failed to create booking: ${bookingError.message}`);
+    }
+
+    console.log("Booking created:", booking.id);
 
     // Create a one-time payment session with dynamic pricing
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : (userEmail || bookingData?.email),
+      customer_email: customerId ? undefined : user.email,
       line_items: [
         {
           price_data: {
@@ -63,10 +93,11 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/payment`,
+      success_url: `${req.headers.get("origin")}/payment-success?booking_id=${booking.id}`,
+      cancel_url: `${req.headers.get("origin")}/booking`,
       metadata: {
-        booking_data: JSON.stringify(bookingData)
+        booking_id: booking.id,
+        user_id: user.id
       }
     });
 

@@ -45,7 +45,15 @@ const PaymentPage = () => {
   };
 
   const handlePayment = async () => {
-    if (!bookingData) return;
+    if (!bookingData || !user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please sign in to complete your payment.",
+      });
+      navigate('/auth');
+      return;
+    }
 
     setProcessing(true);
 
@@ -53,7 +61,7 @@ const PaymentPage = () => {
       let paymentUrl = null;
 
       // Handle different payment methods
-      if (selectedPayment === "stripe" || selectedPayment === "paypal") {
+      if (selectedPayment === "stripe") {
         const { data, error } = await supabase.functions.invoke('create-payment', {
           body: {
             amount: bookingData.totalPrice,

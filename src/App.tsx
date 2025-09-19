@@ -16,6 +16,7 @@ import ContactPage from "./pages/contact";
 import AuthPage from "./pages/auth";
 import ProfilePage from "./pages/profile";
 import AdminLoginPage from "./pages/admin-login";
+import AdminCredentialsPage from "./pages/admin-credentials";
 import AdminDashboard from "./pages/admin-dashboard";
 import NotFound from "./pages/NotFound";
 
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin" element={<AdminLoginPage />} />
+            <Route path="/admin-credentials" element={<AdminCredentialsPage />} />
             <Route path="/admin/dashboard" element={
               <ProtectedRoute requiredRole="admin">
                 <AdminDashboard />
