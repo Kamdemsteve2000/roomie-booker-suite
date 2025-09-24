@@ -99,7 +99,7 @@ export default function AdminCredentialsPage() {
 
             <div className="flex gap-2">
               <Button 
-                onClick={() => navigate('/admin-login')}
+                onClick={() => navigate('/admin')}
                 className="flex-1"
               >
                 <Shield className="mr-2 h-4 w-4" />
@@ -122,15 +122,15 @@ export default function AdminCredentialsPage() {
         </Card>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-white/70">
-            Need to access the dashboard?{" "}
-            <button 
-              onClick={() => navigate('/admin-dashboard')}
-              className="text-white hover:underline"
-            >
-              Admin Dashboard
-            </button>
-          </p>
+            <p className="text-sm text-white/70">
+              Need to access the dashboard?{" "}
+              <button 
+                onClick={() => navigate('/admin/dashboard')}
+                className="text-white hover:underline"
+              >
+                Admin Dashboard
+              </button>
+            </p>
         </div>
       </div>
     </div>
