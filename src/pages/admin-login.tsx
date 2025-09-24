@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (user && userRole === 'admin') {
-      navigate('/admin-dashboard');
+      navigate('/admin/dashboard');
     }
   }, [user, userRole, navigate]);
 
