@@ -71,12 +71,12 @@ serve(async (req) => {
     // Generate unique transaction ID
     const transactionId = `booking_${booking.id}_${Date.now()}`;
     
-    const paymentData = {
+    const paymentData: any = {
       apikey: cinepayApiKey,
-      site_id: Deno.env.get("CINEPAY_SITE_ID") || "1", // You'll need to add this
+      site_id: Deno.env.get("CINEPAY_SITE_ID") || "1",
       transaction_id: transactionId,
-      amount: parseInt(amount),
-      currency: currency,
+      amount: Number(amount),
+      currency,
       description: `Hotel booking for ${bookingData?.roomName || 'Room'}`,
       return_url: `${req.headers.get("origin")}/payment-success?booking_id=${booking.id}`,
       notify_url: `${req.headers.get("origin")}/api/cinepay-webhook`,
@@ -87,7 +87,7 @@ serve(async (req) => {
       customer_phone_number: phoneNumber || bookingData?.phone || "",
       customer_address: "",
       customer_city: "",
-      customer_country: "CI", // Côte d'Ivoire
+      customer_country: "CI",
       customer_state: "",
       customer_zip_code: "",
     };
