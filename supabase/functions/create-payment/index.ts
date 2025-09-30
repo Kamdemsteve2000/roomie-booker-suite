@@ -93,8 +93,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/payment-success?booking_id=${booking.id}`,
-      cancel_url: `${req.headers.get("origin")}/booking`,
+      success_url: `${req.headers.get("origin") || Deno.env.get("FRONTEND_URL") || "http://localhost:8080"}/payment-success?booking_id=${booking.id}`,
+      cancel_url: `${req.headers.get("origin") || Deno.env.get("FRONTEND_URL") || "http://localhost:8080"}/booking`,
       metadata: {
         booking_id: booking.id,
         user_id: user.id
