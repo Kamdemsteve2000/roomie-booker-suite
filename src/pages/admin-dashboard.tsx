@@ -20,6 +20,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import ProtectedRoute from "@/components/admin/ProtectedRoute";
 import RoomsManager from "@/components/admin/RoomsManager";
+import BookingsManager from "@/components/admin/BookingsManager";
+import GuestsManager from "@/components/admin/GuestsManager";
 
 export default function AdminDashboard() {
   const [metrics, setMetrics] = useState<any[]>([]);
@@ -164,65 +166,7 @@ export default function AdminDashboard() {
 
           {/* Bookings Tab */}
           <TabsContent value="bookings">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Recent Bookings</CardTitle>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Search className="h-4 w-4 mr-2" />
-                      Search
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filter
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {loading ? (
-                    Array.from({ length: 4 }).map((_, index) => (
-                      <div key={index} className="p-4 bg-card rounded-lg border">
-                        <div className="animate-pulse">
-                          <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-                          <div className="h-3 bg-muted rounded w-1/2"></div>
-                        </div>
-                      </div>
-                    ))
-                  ) : bookings.length > 0 ? (
-                    bookings.map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between p-4 bg-card rounded-lg border">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-foreground">
-                            {booking.profiles?.first_name} {booking.profiles?.last_name}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {booking.rooms?.name} • Check-in: {new Date(booking.check_in_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Badge 
-                            variant={
-                              booking.status === 'confirmed' ? 'default' : 
-                              booking.status === 'pending' ? 'secondary' : 'destructive'
-                            }
-                          >
-                            {booking.status}
-                          </Badge>
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-center py-4">No bookings found</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <BookingsManager />
           </TabsContent>
 
           {/* Rooms Tab */}
@@ -232,14 +176,7 @@ export default function AdminDashboard() {
 
           {/* Guests Tab */}
           <TabsContent value="guests">
-            <Card>
-              <CardHeader>
-                <CardTitle>Guest Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Guest profiles and preferences would be managed here.</p>
-              </CardContent>
-            </Card>
+            <GuestsManager />
           </TabsContent>
 
           {/* Reports Tab */}
