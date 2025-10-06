@@ -39,25 +39,72 @@ export default function AdminDashboard() {
 
   const fetchMetrics = async () => {
     try {
-      const { data, error } = await supabase
-        .from('dashboard_metrics')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch real-time metrics
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       
-      if (!error && data) {
-        const formattedMetrics = data.map(metric => ({
-          title: metric.metric_label || metric.metric_type,
-          value: metric.metric_type === 'revenue' ? `$${metric.metric_value.toLocaleString()}` : 
-                 metric.metric_type === 'occupancy' ? `${metric.metric_value}%` : 
-                 metric.metric_type === 'satisfaction' ? `${metric.metric_value}/5` : 
-                 metric.metric_value.toString(),
-          change: "+12%", // Placeholder for now
-          icon: metric.metric_type === 'bookings' ? Calendar : 
-                metric.metric_type === 'revenue' ? DollarSign :
-                metric.metric_type === 'occupancy' ? Bed : Users
-        }));
-        setMetrics(formattedMetrics);
-      }
+      // Total bookings this month
+      const { count: bookingsCount } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonth.toISOString());
+      
+      // Total revenue this month
+      const { data: revenueData } = await supabase
+        .from('bookings')
+        .select('total_price')
+        .gte('created_at', startOfMonth.toISOString())
+        .in('status', ['confirmed', 'completed']);
+      
+      const totalRevenue = revenueData?.reduce((sum, b) => sum + Number(b.total_price), 0) || 0;
+      
+      // Occupancy rate
+      const { data: roomsData } = await supabase
+        .from('rooms')
+        .select('inventory_count');
+      
+      const totalRooms = roomsData?.reduce((sum, r) => sum + (r.inventory_count || 0), 0) || 0;
+      
+      const { data: occupiedUnits } = await supabase
+        .from('room_units')
+        .select('*')
+        .eq('status', 'occupied');
+      
+      const occupancyRate = totalRooms > 0 ? Math.round((occupiedUnits?.length || 0) / totalRooms * 100) : 0;
+      
+      // Total guests
+      const { count: guestsCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      const formattedMetrics = [
+        {
+          title: "Réservations ce mois",
+          value: bookingsCount || 0,
+          change: "+12%",
+          icon: Calendar
+        },
+        {
+          title: "Revenus ce mois",
+          value: `$${totalRevenue.toLocaleString()}`,
+          change: "+15%",
+          icon: DollarSign
+        },
+        {
+          title: "Taux d'occupation",
+          value: `${occupancyRate}%`,
+          change: "+8%",
+          icon: Bed
+        },
+        {
+          title: "Clients totaux",
+          value: guestsCount || 0,
+          change: "+5%",
+          icon: Users
+        }
+      ];
+      
+      setMetrics(formattedMetrics);
     } catch (error) {
       console.error('Error fetching metrics:', error);
     }

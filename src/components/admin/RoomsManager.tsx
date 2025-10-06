@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, Image } from "lucide-react";
+import { Plus, Edit, Trash2, Image, Upload, Loader2, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import SubroomsManager from "./SubroomsManager";
 
 interface Room {
   id: string;
@@ -46,6 +47,10 @@ export default function RoomsManager() {
     image_url: '',
     inventory_count: 1
   });
+  
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [selectedRoomForSubrooms, setSelectedRoomForSubrooms] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRooms();
@@ -86,6 +91,37 @@ export default function RoomsManager() {
       inventory_count: 1
     });
     setEditingRoom(null);
+    setSelectedImage(null);
+  };
+
+  const handleImageUpload = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('room-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('room-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error uploading image",
+        description: error.message,
+      });
+      return null;
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleEdit = (room: Room) => {
@@ -110,22 +146,32 @@ export default function RoomsManager() {
     e.preventDefault();
     
     try {
+      let imageUrl = formData.image_url;
+
+      // Upload image if selected
+      if (selectedImage) {
+        const uploadedUrl = await handleImageUpload(selectedImage);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        }
+      }
+
       const roomData = {
         name: formData.name,
         description: formData.description,
-        type: formData.type,
+        type: formData.type as "standard" | "deluxe" | "suite",
         price: formData.price,
         capacity: formData.capacity,
         size: formData.size,
         available: formData.available,
         features: formData.features.split(',').map(f => f.trim()).filter(f => f),
         amenities: formData.amenities.split(',').map(a => a.trim()).filter(a => a),
-        image_url: formData.image_url || null,
+        image_url: imageUrl || null,
         inventory_count: formData.inventory_count
       };
 
       if (editingRoom) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('rooms')
           .update(roomData)
           .eq('id', editingRoom.id);
@@ -133,19 +179,19 @@ export default function RoomsManager() {
         if (error) throw error;
         
         toast({
-          title: "Room updated",
-          description: "Room has been updated successfully.",
+          title: "Chambre mise à jour",
+          description: "La chambre a été mise à jour avec succès.",
         });
       } else {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('rooms')
           .insert(roomData);
         
         if (error) throw error;
         
         toast({
-          title: "Room created",
-          description: "New room has been created successfully.",
+          title: "Chambre créée",
+          description: "La nouvelle chambre a été créée avec succès.",
         });
       }
 
@@ -155,17 +201,17 @@ export default function RoomsManager() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error saving room",
+        title: "Erreur lors de l'enregistrement",
         description: error.message,
       });
     }
   };
 
   const handleDelete = async (roomId: string, roomName: string) => {
-    if (!confirm(`Are you sure you want to delete "${roomName}"?`)) return;
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${roomName}"?`)) return;
     
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('rooms')
         .delete()
         .eq('id', roomId);
@@ -173,15 +219,15 @@ export default function RoomsManager() {
       if (error) throw error;
       
       toast({
-        title: "Room deleted",
-        description: "Room has been deleted successfully.",
+        title: "Chambre supprimée",
+        description: "La chambre a été supprimée avec succès.",
       });
       
       fetchRooms();
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error deleting room",
+        title: "Erreur lors de la suppression",
         description: error.message,
       });
     }
@@ -322,13 +368,31 @@ export default function RoomsManager() {
                 </div>
 
                 <div>
-                  <Label htmlFor="image_url">Image URL</Label>
-                  <Input
-                    id="image_url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                    placeholder="https://..."
-                  />
+                  <Label htmlFor="image">Image de la chambre</Label>
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSelectedImage(e.target.files?.[0] || null)}
+                      disabled={uploading}
+                    />
+                    {uploading && (
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Upload en cours...
+                      </div>
+                    )}
+                    {formData.image_url && (
+                      <div className="mt-2">
+                        <img 
+                          src={formData.image_url} 
+                          alt="Aperçu" 
+                          className="h-32 w-auto rounded-md object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -390,6 +454,13 @@ export default function RoomsManager() {
                         <Image className="h-4 w-4" />
                       </Button>
                     )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setSelectedRoomForSubrooms(room.id)}
+                    >
+                      <Building2 className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(room)}>
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -408,6 +479,17 @@ export default function RoomsManager() {
           )}
         </div>
       </CardContent>
+
+      {selectedRoomForSubrooms && (
+        <Dialog open={!!selectedRoomForSubrooms} onOpenChange={() => setSelectedRoomForSubrooms(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Gestion des Sous-chambres</DialogTitle>
+            </DialogHeader>
+            <SubroomsManager roomId={selectedRoomForSubrooms} />
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }

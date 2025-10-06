@@ -419,6 +419,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_room_unit_availability: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
