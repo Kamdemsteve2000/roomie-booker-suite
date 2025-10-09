@@ -84,12 +84,9 @@ const PaymentPage = () => {
         if (error) throw error;
         paymentUrl = data.url;
       } else if (selectedPayment === "orange" || selectedPayment === "mtn") {
-        const paymentMethod = selectedPayment === "orange" ? "ORANGE_MONEY_CI" : "MTN_MONEY_CI";
-        const { data, error } = await supabase.functions.invoke('cinepay-payment', {
+        const { data, error } = await supabase.functions.invoke('monetbil-payment', {
           body: {
             amount: bookingData.totalPrice,
-            currency: "XOF",
-            paymentMethod: paymentMethod,
             phoneNumber: bookingData.phone,
             bookingData: bookingData
           }
@@ -295,7 +292,7 @@ const PaymentPage = () => {
 
                       <div className="flex justify-between font-semibold text-lg">
                         <span>Total:</span>
-                        <span>${bookingData.totalPrice}</span>
+                        <span>{bookingData.totalPrice} FCFA</span>
                       </div>
                     </div>
                   )}
@@ -305,7 +302,7 @@ const PaymentPage = () => {
                     disabled={processing}
                     onClick={handlePayment}
                   >
-                    {processing ? 'Processing...' : `Pay $${bookingData.totalPrice}`}
+                    {processing ? 'Traitement...' : `Payer ${bookingData.totalPrice} FCFA`}
                   </Button>
 
                   <p className="text-xs text-muted-foreground text-center mt-4">
