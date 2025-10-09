@@ -8,8 +8,10 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import Map from "@/components/Map";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ContactPage() {
+  const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -23,23 +25,23 @@ export default function ContactPage() {
   const contactInfo = [
     {
       icon: Phone,
-      title: "Phone",
-      details: ["+1 (555) 123-4567", "+1 (555) 123-4568"]
+      title: t('contact.phone'),
+      details: ["+237 6 XX XX XX XX", "+237 6 YY YY YY YY"]
     },
     {
       icon: Mail,
-      title: "Email",
-      details: ["info@grandluxehotel.com", "reservations@grandluxehotel.com"]
+      title: t('contact.email'),
+      details: ["info@grandluxehotel.cm", "reservations@grandluxehotel.cm"]
     },
     {
       icon: MapPin,
-      title: "Address",
-      details: ["123 Luxury Boulevard", "Downtown District, City 12345"]
+      title: t('contact.address'),
+      details: ["Yaoundé, Cameroun", "Quartier Central"]
     },
     {
       icon: Clock,
-      title: "Hours",
-      details: ["24/7 Front Desk", "Concierge: 6 AM - 11 PM"]
+      title: t('contact.hours'),
+      details: ["Réception 24/7", "Conciergerie: 6h - 23h"]
     }
   ];
 
@@ -78,8 +80,8 @@ export default function ContactPage() {
       }
 
       toast({
-        title: "Message envoyé avec succès!",
-        description: "Nous vous répondrons dans les plus brefs délais.",
+        title: t('contact.successTitle'),
+        description: t('contact.successDesc'),
       });
 
       // Reset form
@@ -94,8 +96,8 @@ export default function ContactPage() {
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
-        title: "Erreur lors de l'envoi",
-        description: "Veuillez réessayer plus tard ou nous contacter directement.",
+        title: t('contact.errorTitle'),
+        description: t('contact.errorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -117,9 +119,9 @@ export default function ContactPage() {
         <section className="relative py-20 bg-gradient-elegant">
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="container mx-auto px-4 relative z-10 text-center">
-            <h1 className="text-5xl font-bold text-white mb-6">Contact Us</h1>
+            <h1 className="text-5xl font-bold text-white mb-6">{t('contact.title')}</h1>
             <p className="text-xl text-white/90 max-w-3xl mx-auto leading-relaxed">
-              We're here to help make your stay exceptional. Reach out to us anytime.
+              {t('contact.subtitle')}
             </p>
           </div>
         </section>
@@ -131,10 +133,9 @@ export default function ContactPage() {
               {/* Contact Information */}
               <div className="space-y-8">
                 <div>
-                  <h2 className="text-3xl font-bold text-foreground mb-6">Get in Touch</h2>
+                  <h2 className="text-3xl font-bold text-foreground mb-6">{t('contact.getInTouch')}</h2>
                   <p className="text-muted-foreground leading-relaxed mb-8">
-                    Our dedicated team is available 24/7 to assist you with reservations, 
-                    special requests, or any questions about your stay.
+                    {t('contact.description')}
                   </p>
                 </div>
 
@@ -173,14 +174,14 @@ export default function ContactPage() {
               <div>
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-2xl">Send us a Message</CardTitle>
+                    <CardTitle className="text-2xl">{t('contact.sendMessage')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div>
                           <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-2">
-                            First Name *
+                            {t('contact.firstName')} *
                           </label>
                           <Input 
                             id="firstName" 
@@ -192,7 +193,7 @@ export default function ContactPage() {
                         </div>
                         <div>
                           <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-2">
-                            Last Name *
+                            {t('contact.lastName')} *
                           </label>
                           <Input 
                             id="lastName" 
@@ -206,7 +207,7 @@ export default function ContactPage() {
 
                       <div>
                         <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                          Email Address *
+                          {t('contact.emailAddress')} *
                         </label>
                         <Input 
                           id="email" 
@@ -220,7 +221,7 @@ export default function ContactPage() {
 
                       <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
-                          Phone Number
+                          {t('contact.phoneNumber')}
                         </label>
                         <Input 
                           id="phone" 
@@ -233,7 +234,7 @@ export default function ContactPage() {
 
                       <div>
                         <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
-                          Subject *
+                          {t('contact.subject')} *
                         </label>
                         <Input 
                           id="subject" 
@@ -246,7 +247,7 @@ export default function ContactPage() {
 
                       <div>
                         <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                          Message *
+                          {t('contact.message')} *
                         </label>
                         <Textarea 
                           id="message" 
@@ -255,12 +256,12 @@ export default function ContactPage() {
                           onChange={handleInputChange}
                           required 
                           rows={6}
-                          placeholder="Tell us how we can help you..."
+                          placeholder={t('contact.messagePlaceholder')}
                         />
                       </div>
 
                       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? "Sending..." : "Send Message"}
+                        {isSubmitting ? t('contact.sending') : t('contact.send')}
                       </Button>
                     </form>
                   </CardContent>
@@ -273,29 +274,29 @@ export default function ContactPage() {
         {/* Quick Links Section */}
         <section className="py-16 bg-card">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-8">Quick Actions</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-8">{t('contact.quickActions')}</h2>
             <div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-foreground mb-2">Make a Reservation</h3>
-                  <p className="text-muted-foreground text-sm mb-4">Book your perfect room today</p>
-                  <Button variant="outline" size="sm">Book Now</Button>
+                  <h3 className="font-semibold text-foreground mb-2">{t('contact.makeReservation')}</h3>
+                  <p className="text-muted-foreground text-sm mb-4">{t('contact.makeReservationDesc')}</p>
+                  <Button variant="outline" size="sm">{t('contact.bookNow')}</Button>
                 </CardContent>
               </Card>
               
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-foreground mb-2">Special Offers</h3>
-                  <p className="text-muted-foreground text-sm mb-4">Discover our current deals</p>
-                  <Button variant="outline" size="sm">View Offers</Button>
+                  <h3 className="font-semibold text-foreground mb-2">{t('contact.specialOffers')}</h3>
+                  <p className="text-muted-foreground text-sm mb-4">{t('contact.specialOffersDesc')}</p>
+                  <Button variant="outline" size="sm">{t('contact.viewOffers')}</Button>
                 </CardContent>
               </Card>
               
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-foreground mb-2">Concierge Services</h3>
-                  <p className="text-muted-foreground text-sm mb-4">Let us plan your experience</p>
-                  <Button variant="outline" size="sm">Learn More</Button>
+                  <h3 className="font-semibold text-foreground mb-2">{t('contact.concierge')}</h3>
+                  <p className="text-muted-foreground text-sm mb-4">{t('contact.conciergeDesc')}</p>
+                  <Button variant="outline" size="sm">{t('contact.learnMore')}</Button>
                 </CardContent>
               </Card>
             </div>

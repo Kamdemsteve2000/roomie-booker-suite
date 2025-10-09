@@ -4,18 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Calendar, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { t } = useLanguage();
 
   const navItems = [
-    { name: "Home", path: "/" },
-    { name: "Rooms & Suites", path: "/rooms" },
-    { name: "About", path: "/about" },
-    { name: "Contact", path: "/contact" },
-    { name: "Admin Access", path: "/admin-credentials" },
+    { name: t('nav.home'), path: "/" },
+    { name: t('nav.rooms'), path: "/rooms" },
+    { name: t('nav.about'), path: "/about" },
+    { name: t('nav.contact'), path: "/contact" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -54,30 +56,25 @@ const Navigation = () => {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/booking">
-                <Calendar className="w-4 h-4 mr-2" />
-                Book Now
-              </Link>
-            </Button>
+            <LanguageToggle />
             {user ? (
               <>
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/profile">
                     <User className="w-4 h-4 mr-2" />
-                    Profile
+                    {t('nav.profile')}
                   </Link>
                 </Button>
                 <Button variant="ghost" size="sm" onClick={signOut}>
                   <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
+                  {t('nav.logout')}
                 </Button>
               </>
             ) : (
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/auth">
                   <User className="w-4 h-4 mr-2" />
-                  Sign In
+                  {t('nav.login')}
                 </Link>
               </Button>
             )}
@@ -116,30 +113,25 @@ const Navigation = () => {
                 </Link>
               ))}
               <div className="flex flex-col space-y-2 pt-4">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/booking">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Book Now
-                  </Link>
-                </Button>
+                <LanguageToggle />
                 {user ? (
                   <>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to="/profile">
                         <User className="w-4 h-4 mr-2" />
-                        Profile
+                        {t('nav.profile')}
                       </Link>
                     </Button>
                     <Button variant="ghost" size="sm" onClick={signOut}>
                       <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                      {t('nav.logout')}
                     </Button>
                   </>
                 ) : (
                   <Button variant="ghost" size="sm" asChild>
                     <Link to="/auth">
                       <User className="w-4 h-4 mr-2" />
-                      Sign In
+                      {t('nav.login')}
                     </Link>
                   </Button>
                 )}
