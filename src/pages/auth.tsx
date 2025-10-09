@@ -13,7 +13,10 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, signInWithGoogle, user } = useAuth();
+  const [showPhoneAuth, setShowPhoneAuth] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const { signIn, signUp, signInWithGoogle, signInWithPhone, verifyOtp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -100,6 +103,56 @@ export default function AuthPage() {
         description: error.message,
       });
     }
+  };
+
+  const handlePhoneSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const phone = formData.get('phone-number') as string;
+    setPhoneNumber(phone);
+
+    const { error } = await signInWithPhone(phone);
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Échec de l'envoi du code",
+        description: error.message,
+      });
+    } else {
+      setShowOtpInput(true);
+      toast({
+        title: "Code envoyé!",
+        description: "Vérifiez vos SMS pour le code de vérification.",
+      });
+    }
+    setIsLoading(false);
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    const otp = formData.get('otp') as string;
+
+    const { error } = await verifyOtp(phoneNumber, otp);
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Vérification échouée",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Bienvenue!",
+        description: "Vous êtes connecté avec succès.",
+      });
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -294,14 +347,14 @@ export default function AuthPage() {
                 </TabsContent>
               </Tabs>
 
-              {/* Social Login Placeholder */}
+              {/* Social and Phone Login */}
               <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    <span className="bg-card px-2 text-muted-foreground">Ou continuer avec</span>
                   </div>
                 </div>
 
@@ -309,10 +362,65 @@ export default function AuthPage() {
                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
                      Google
                    </Button>
-                   <Button variant="outline" className="w-full" disabled>
-                     Facebook
+                   <Button 
+                     variant="outline" 
+                     className="w-full"
+                     onClick={() => setShowPhoneAuth(!showPhoneAuth)}
+                   >
+                     Téléphone
                    </Button>
                  </div>
+
+                 {showPhoneAuth && (
+                   <div className="mt-4 space-y-4">
+                     {!showOtpInput ? (
+                       <form onSubmit={handlePhoneSignIn} className="space-y-3">
+                         <div>
+                           <label htmlFor="phone-number" className="block text-sm font-medium text-foreground mb-2">
+                             Numéro de téléphone
+                           </label>
+                           <Input 
+                             id="phone-number" 
+                             name="phone-number"
+                             type="tel" 
+                             required 
+                             placeholder="+237 6XX XXX XXX"
+                           />
+                         </div>
+                         <Button type="submit" className="w-full" disabled={isLoading}>
+                           {isLoading ? "Envoi..." : "Envoyer le code"}
+                         </Button>
+                       </form>
+                     ) : (
+                       <form onSubmit={handleVerifyOtp} className="space-y-3">
+                         <div>
+                           <label htmlFor="otp" className="block text-sm font-medium text-foreground mb-2">
+                             Code de vérification
+                           </label>
+                           <Input 
+                             id="otp" 
+                             name="otp"
+                             type="text" 
+                             required 
+                             placeholder="Entrez le code à 6 chiffres"
+                             maxLength={6}
+                           />
+                         </div>
+                         <Button type="submit" className="w-full" disabled={isLoading}>
+                           {isLoading ? "Vérification..." : "Vérifier"}
+                         </Button>
+                         <Button 
+                           type="button" 
+                           variant="ghost" 
+                           className="w-full"
+                           onClick={() => setShowOtpInput(false)}
+                         >
+                           Renvoyer le code
+                         </Button>
+                       </form>
+                     )}
+                   </div>
+                 )}
               </div>
             </CardContent>
           </Card>
