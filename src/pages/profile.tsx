@@ -15,6 +15,7 @@ import ProtectedRoute from "@/components/admin/ProtectedRoute";
 export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const { user, signOut } = useAuth();
@@ -25,6 +26,7 @@ export default function ProfilePage() {
     if (user) {
       fetchProfile();
       fetchBookings();
+      fetchPayments();
     }
   }, [user]);
 
