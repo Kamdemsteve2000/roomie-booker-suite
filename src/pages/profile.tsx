@@ -67,6 +67,7 @@ export default function ProfilePage() {
     }
   };
 
+
   const fetchPayments = async () => {
     try {
       const { data, error } = await supabase
