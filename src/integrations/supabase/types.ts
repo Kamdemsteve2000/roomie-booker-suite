@@ -181,6 +181,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string
+          currency: string
+          id: string
+          payment_method: string
+          payment_status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method: string
+          payment_status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method?: string
+          payment_status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -419,10 +466,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      update_room_unit_availability: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      update_room_unit_availability: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
