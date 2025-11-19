@@ -67,6 +67,28 @@ export default function ProfilePage() {
     }
   };
 
+  const fetchPayments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          bookings(
+            *,
+            rooms(name, type)
+          )
+        `)
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        setPayments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    }
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
